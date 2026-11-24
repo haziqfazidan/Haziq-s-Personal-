@@ -25,7 +25,9 @@ create table if not exists public.admin_tasks (
 
 -- Keep updated_at fresh on every change.
 create or replace function public.touch_updated_at() returns trigger
-language plpgsql as $$
+language plpgsql
+set search_path = ''
+as $$
 begin
   new.updated_at = now();
   return new;
@@ -43,11 +45,11 @@ alter table public.admin_tasks enable row level security;
 drop policy if exists "own checkins" on public.checkins;
 create policy "own checkins" on public.checkins
   for all to authenticated
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
 
 drop policy if exists "own admin tasks" on public.admin_tasks;
 create policy "own admin tasks" on public.admin_tasks
   for all to authenticated
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
