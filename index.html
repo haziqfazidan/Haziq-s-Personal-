@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15803d">
+<title>Haziq's Personal Portal</title>
+<style>
+:root {
+  --bg: #f4f6f5; --surface: #ffffff; --side: #f8faf9; --fg: #14201b; --muted: #5d6e67; --line: #dfe6e2;
+  --accent: #15803d; --accent-ink: #ffffff; --accent-soft: #e6f2ea;
+  --good: #1f8a4f; --mid: #a86a00; --bad: #c0392f;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1412; --surface: #141d1a; --side: #101815; --fg: #e4ede9; --muted: #94a69f; --line: #26332e;
+    --accent: #4cc27f; --accent-ink: #06201a; --accent-soft: #17291f;
+    --good: #53c488; --mid: #e3ab3c; --bad: #ec7468; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--font); -webkit-text-size-adjust: 100%; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.num { font-variant-numeric: tabular-nums; }
+.label { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.hint { font-size: 12.5px; color: var(--muted); }
+svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* Shell */
+.shell { min-height: 100vh; min-height: 100dvh; }
+.side {
+  position: fixed; inset: 0 auto 0 0; width: min(300px, 86vw); background: var(--side); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 14px; padding: 18px 14px 14px; z-index: 30;
+  padding-top: max(18px, env(safe-area-inset-top)); padding-bottom: max(14px, env(safe-area-inset-bottom));
+  transform: translateX(-100%); transition: transform .2s ease;
+}
+.navopen .side { transform: none; box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 20; display: none; }
+.navopen .scrim { display: block; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 2px 6px; }
+.logo { width: 42px; height: 42px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
+.logo svg { width: 22px; height: 22px; }
+.brand b { display: block; font-size: 17px; line-height: 1.2; }
+.brand span { color: var(--muted); font-size: 13.5px; }
+.searchbox {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: var(--muted);
+}
+.searchbox span { flex: 1; }
+kbd { font: 11.5px var(--font); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; background: var(--bg); color: var(--muted); }
+.nav { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; min-height: 0; }
+.nav .grp { margin: 16px 8px 6px; }
+.nav a {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--fg);
+  text-decoration: none; font-weight: 500;
+}
+.nav a:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.usercard { position: relative; }
+.usercard > button {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 14px; text-align: left;
+}
+.avatar { position: relative; width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; flex: none; }
+.avatar i { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border-radius: 50%; background: #34c759; border: 2px solid var(--surface); }
+.who { flex: 1; min-width: 0; }
+.who b { display: block; line-height: 1.2; }
+.who span { display: block; color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usermenu {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 8px); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 6px; box-shadow: 0 8px 28px rgba(0,0,0,.14);
+}
+.usermenu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 0; background: transparent; border-radius: 8px; text-align: left; }
+.usermenu button:hover { background: var(--accent-soft); }
+
+.main { min-width: 0; }
+.topbar {
+  position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 10px; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: 10px 16px; padding-top: max(10px, env(safe-area-inset-top));
+}
+.topbar h1 { flex: 1; font-size: 18px; }
+.iconbtn { width: 40px; height: 40px; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.iconbtn.spin svg { animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.page { max-width: 920px; margin: 0 auto; padding: 22px 16px 64px; display: flex; flex-direction: column; gap: 26px; }
+.banner { max-width: 920px; margin: 14px auto 0; padding: 0 16px; }
+.banner div { padding: 10px 14px; border-radius: 10px; font-size: 13.5px; background: color-mix(in srgb, var(--mid) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--mid) 45%, var(--surface)); }
+.banner div.err { background: color-mix(in srgb, var(--bad) 12%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 45%, var(--surface)); }
+
+@media (min-width: 900px) {
+  .side { transform: none; width: 272px; }
+  .scrim { display: none !important; }
+  .main { margin-left: 272px; }
+  #menubtn { display: none; }
+  .page { padding: 28px 28px 72px; }
+  .topbar { padding-inline: 28px; }
+}
+
+/* Sections and cards */
+.sec { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.sec-head h2 { font-size: 17px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+.hero { display: flex; flex-direction: column; gap: 12px; }
+.hero h2 { font-size: 28px; line-height: 1.15; }
+.bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); }
+.road-meta { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); border-block: 1px solid var(--line); }
+.stat { padding: 16px 12px 16px 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stat + .stat { padding-left: 16px; border-left: 1px solid var(--line); }
+.stat .v { font-size: 30px; font-weight: 650; line-height: 1.1; }
+.stat .v small { font-size: 14px; color: var(--muted); font-weight: 500; margin-left: 3px; }
+.stat .s { font-size: 12.5px; color: var(--muted); }
+@media (max-width: 640px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .stat:nth-child(3) { padding-left: 0; border-left: 0; }
+  .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+.btn { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 10px; padding: 10px 18px; font-weight: 600; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+.btn[disabled] { opacity: .6; cursor: default; }
+.legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.i-good { background: color-mix(in srgb, var(--good) 45%, var(--surface)); border: 1px solid var(--good); }
+.i-mid { background: color-mix(in srgb, var(--mid) 45%, var(--surface)); border: 1px solid var(--mid); }
+.i-bad { background: color-mix(in srgb, var(--bad) 45%, var(--surface)); border: 1px solid var(--bad); }
+
+/* Habit grid */
+.gridwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+table.habits { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 720px; }
+.habits th, .habits td { padding: 0; }
+.habits thead th { font-weight: 500; font-size: 11.5px; color: var(--muted); text-align: center; padding: 10px 2px 6px; white-space: nowrap; }
+.habits thead th.today, .habits thead th.today .dn { color: var(--accent); }
+.habits thead th .dn { display: block; font-size: 14px; color: var(--fg); font-weight: 600; }
+.habits tbody th { text-align: left; position: sticky; left: 0; background: var(--surface); padding: 5px 12px 5px 14px; font-weight: 500; font-size: 13.5px; white-space: nowrap; z-index: 1; min-width: 104px; }
+.habits tbody th small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+.habits tbody tr + tr > * { border-top: 1px solid var(--line); }
+.habits td { text-align: center; padding: 4px 2px; }
+.cell { width: 100%; min-width: 40px; height: 34px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12px; padding: 0 2px; font-variant-numeric: tabular-nums; }
+.cell.none { border: 1px dashed var(--line); color: var(--line); }
+.cell.rest { background: color-mix(in srgb, var(--muted) 10%, var(--surface)); }
+.cell.good, .chip.good { background: color-mix(in srgb, var(--good) 18%, var(--surface)); border-color: color-mix(in srgb, var(--good) 55%, var(--surface)); color: var(--good); font-weight: 600; }
+.cell.mid, .chip.mid { background: color-mix(in srgb, var(--mid) 18%, var(--surface)); border-color: color-mix(in srgb, var(--mid) 55%, var(--surface)); color: var(--mid); font-weight: 600; }
+.cell.bad, .chip.bad { background: color-mix(in srgb, var(--bad) 16%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 55%, var(--surface)); color: var(--bad); font-weight: 600; }
+.cell.sel { box-shadow: 0 0 0 2px var(--accent); }
+
+/* Chart */
+.chart { padding: 14px 14px 8px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart text { font: 11px var(--font); fill: var(--muted); }
+.chart .tgt { stroke: var(--accent); stroke-dasharray: 4 4; stroke-width: 1.25; }
+.chart .tgt-l { fill: var(--accent); font-weight: 600; }
+.chart .grid { stroke: var(--line); }
+.chart .v { fill: var(--fg); font-weight: 600; }
+.b-good { fill: color-mix(in srgb, var(--good) 60%, var(--surface)); }
+.b-mid { fill: color-mix(in srgb, var(--mid) 65%, var(--surface)); }
+.b-bad { fill: color-mix(in srgb, var(--bad) 60%, var(--surface)); }
+
+/* Entries */
+.entries { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+.entry { display: flex; gap: 14px; align-items: flex-start; width: 100%; text-align: left; padding: 12px 16px; background: transparent; border: 0; }
+.entry + .entry { border-top: 1px solid var(--line); }
+.entry:hover { background: var(--accent-soft); }
+.entry .d { width: 92px; flex: none; font-weight: 600; white-space: nowrap; }
+.entry .c { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.empty { padding: 22px 16px; color: var(--muted); text-align: center; }
+
+/* Form */
+.form { display: flex; flex-direction: column; gap: 18px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px 20px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+.field > label, .field > .fl { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+input[type=date], input[type=time], input[type=number], input[type=text], input[type=email], input[type=password], textarea {
+  font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; width: 100%; min-width: 0;
+}
+textarea { resize: vertical; min-height: 64px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+.seg button { flex: 1; border: 0; background: transparent; padding: 10px 6px; font-size: 13.5px; color: var(--muted); border-left: 1px solid var(--line); }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.status { font-size: 13px; color: var(--muted); }
+.status.ok { color: var(--good); } .status.err { color: var(--bad); }
+
+/* Admin list */
+.todo { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+.todo button { display: flex; align-items: center; gap: 12px; text-align: left; background: transparent; border: 0; padding: 14px 16px; }
+.todo button + button { border-top: 1px solid var(--line); }
+.box { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid var(--muted); flex: none; display: grid; place-items: center; font-size: 13px; line-height: 1; color: var(--accent-ink); }
+.todo button[aria-pressed="true"] .box { background: var(--accent); border-color: var(--accent); }
+.todo button[aria-pressed="true"] .t { color: var(--muted); text-decoration: line-through; }
+.todo .t small { display: block; color: var(--muted); font-size: 12.5px; text-decoration: none; }
+
+/* Palette */
+.pal { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.4); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; }
+.pal > div { width: min(520px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.pal input { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; padding: 14px 16px; font-size: 16px; }
+.pal ul { list-style: none; margin: 0; padding: 6px; max-height: 50vh; overflow-y: auto; }
+.pal li button { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px; border: 0; background: transparent; border-radius: 10px; }
+.pal li button:hover, .pal li button.on { background: var(--accent-soft); color: var(--accent); }
+.toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 60; }
+
+/* Login */
+.login { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 20px; }
+.login .card { width: min(380px, 100%); display: flex; flex-direction: column; gap: 16px; padding: 24px; }
+.login form { display: flex; flex-direction: column; gap: 12px; }
+@media (prefers-reduced-motion: reduce) { .side { transition: none; } .iconbtn.spin svg { animation: none; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- config and mode ---------- */
+  var START = "2026-11-19", PLAN_DAYS = 42;
+  var cfg = window.PORTAL_CONFIG || {};
+  var sb = null, mode = "local";
+  if (cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY && !/YOUR-/.test(cfg.SUPABASE_URL) && window.supabase) {
+    try { sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY); mode = "cloud"; } catch (e) { sb = null; }
+  }
+  var state = { user: null, entries: new Map(), admin: {}, page: "home", selDate: "", form: {}, navOpen: false, menuOpen: false, busy: false, err: "", toast: "", booted: false };
+
+  /* ---------- helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function fmt(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parse(s) { var p = s.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  var DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function pretty(s) { var d = parse(s); return DOW[d.getDay()] + " " + d.getDate() + " " + MON[d.getMonth()]; }
+  function mins(t) { if (!t) return null; var p = t.split(":"); return (+p[0]) * 60 + (+p[1]); }
+  function today() { return fmt(new Date()); }
+  function lastDays(n) { var out = [], t = parse(today()); for (var i = n - 1; i >= 0; i--) out.push(fmt(addDays(t, -i))); return out; }
+  function avg(a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : null; }
+
+  var ICONS = {
+    home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/>',
+    check: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="m9 15 2 2 4-4"/>',
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+    clip: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    refresh: '<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"/><path d="M21 3v5h-5"/>',
+    menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+    out: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+    updown: '<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>',
+    pulse: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'
+  };
+  function ic(n) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[n] + "</svg>"; }
+
+  var PAGES = [
+    { id: "home", label: "Home", icon: "home", group: "" },
+    { id: "checkins", label: "Check-ins", icon: "check", group: "Health & Fitness" },
+    { id: "habits", label: "Habits", icon: "grid", group: "Health & Fitness" },
+    { id: "sleep", label: "Sleep", icon: "moon", group: "Health & Fitness" },
+    { id: "admin", label: "Health admin", icon: "clip", group: "Admin" }
+  ];
+  function pageById(id) { for (var i = 0; i < PAGES.length; i++) if (PAGES[i].id === id) return PAGES[i]; return PAGES[0]; }
+
+  /* ---------- derived values ---------- */
+  function sleepHours(e) { if (!e || !e.bed || !e.wake) return null; return ((mins(e.wake) - mins(e.bed) + 1440) % 1440) / 60; }
+  function bedNorm(e) { var b = mins(e.bed); if (b === null) return null; if (b < 720) b += 1440; return b; }
+  function statusSleep(h) { return h === null ? null : h >= 7 ? "good" : h >= 6 ? "mid" : "bad"; }
+  function statusBed(e) { if (!e || !e.bed) return null; var b = bedNorm(e); return b <= 1365 ? "good" : b <= 1410 ? "mid" : "bad"; }
+  function statusWalk(e) { if (!e || typeof e.walkMin !== "number") return null; return e.walkMin >= 30 ? "good" : e.walkMin >= 10 ? "mid" : "bad"; }
+  function statusSweets(e) { return e && e.sweets ? { none: "good", some: "mid", lots: "bad" }[e.sweets] : null; }
+  function statusPoison(e) { return e && e.poison ? { clear: "good", brief: "mid", slip: "bad" }[e.poison] : null; }
+  function statusMood(e) { if (!e || typeof e.mood !== "number") return null; return e.mood >= 4 ? "good" : e.mood === 3 ? "mid" : "bad"; }
+  var SWEETS = { none: "none", some: "some", lots: "a lot" }, POISON = { clear: "clear", brief: "brief slip", slip: "slipped" };
+
+  /* ---------- storage: Supabase when configured, otherwise this browser only ---------- */
+  var LS = {
+    get: function (k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+  function fromRow(r) {
+    var e = { date: r.date };
+    if (r.bed) e.bed = r.bed.slice(0, 5);
+    if (r.wake) e.wake = r.wake.slice(0, 5);
+    if (r.walk_min !== null && r.walk_min !== undefined) e.walkMin = r.walk_min;
+    if (typeof r.gym === "boolean") e.gym = r.gym;
+    if (r.gym_note) e.gymNote = r.gym_note;
+    if (r.sweets) e.sweets = r.sweets;
+    if (r.poison) e.poison = r.poison;
+    if (r.mood !== null && r.mood !== undefined) e.mood = r.mood;
+    if (r.note) e.note = r.note;
+    return e;
+  }
+  function toRow(e) {
+    return {
+      date: e.date, bed: e.bed || null, wake: e.wake || null,
+      walk_min: typeof e.walkMin === "number" ? e.walkMin : null,
+      gym: typeof e.gym === "boolean" ? e.gym : null, gym_note: e.gymNote || null,
+      sweets: e.sweets || null, poison: e.poison || null,
+      mood: typeof e.mood === "number" ? e.mood : null, note: e.note || null
+    };
+  }
+  async function loadAll() {
+    if (mode === "cloud") {
+      var a = await sb.from("checkins").select("*").order("date", { ascending: false }).limit(1000);
+      if (a.error) throw a.error;
+      var b = await sb.from("admin_tasks").select("*");
+      if (b.error) throw b.error;
+      state.entries = new Map(a.data.map(function (r) { return [r.date, fromRow(r)]; }));
+      state.admin = {}; b.data.forEach(function (r) { state.admin[r.key] = r.done; });
+    } else {
+      var m = LS.get("portal.checkins") || {};
+      state.entries = new Map(Object.keys(m).map(function (k) { return [k, m[k]]; }));
+      state.admin = LS.get("portal.admin") || {};
+    }
+  }
+  async function saveEntry(e) {
+    if (mode === "cloud") {
+      var r = await sb.from("checkins").upsert(toRow(e), { onConflict: "user_id,date" });
+      if (r.error) throw r.error;
+    } else { var m = LS.get("portal.checkins") || {}; m[e.date] = e; LS.set("portal.checkins", m); }
+  }
+  async function saveAdmin(key, done) {
+    if (mode === "cloud") {
+      var r = await sb.from("admin_tasks").upsert({ key: key, done: done }, { onConflict: "user_id,key" });
+      if (r.error) throw r.error;
+    } else { LS.set("portal.admin", state.admin); }
+  }
+  function errText(e) { return (e && e.message) ? e.message : "try again in a moment"; }
+
+  /* ---------- views ---------- */
+  function chip(cls, text) { return '<span class="chip ' + cls + '">' + esc(text) + "</span>"; }
+  function chips(e) {
+    var o = [], h = sleepHours(e);
+    if (h !== null) o.push(chip(statusSleep(h), h.toFixed(1) + "h sleep"));
+    if (typeof e.walkMin === "number") o.push(chip(statusWalk(e), e.walkMin + " min walk"));
+    if (typeof e.gym === "boolean") o.push(e.gym ? chip("good", "Gym") : chip("", "Rest day"));
+    if (e.sweets) o.push(chip(statusSweets(e), "Sweets: " + SWEETS[e.sweets]));
+    if (e.poison) o.push(chip(statusPoison(e), "Poison: " + POISON[e.poison]));
+    if (typeof e.mood === "number") o.push(chip(statusMood(e), "Mood " + e.mood));
+    return o.join("") || '<span class="hint">Nothing recorded</span>';
+  }
+
+  function statsHtml() {
+    var streak = 0, t = parse(today());
+    for (var i = 0; i < 400; i++) {
+      var e = state.entries.get(fmt(addDays(t, -i)));
+      if (!e || !e.poison) { if (i === 0) continue; break; }
+      if (e.poison === "clear") streak++; else break;
+    }
+    var gym = 0, walk = 0, sl = [], mo = [];
+    lastDays(7).forEach(function (k) {
+      var e = state.entries.get(k); if (!e) return;
+      if (e.gym === true) gym++;
+      if (typeof e.walkMin === "number" && e.walkMin > 0) walk++;
+      var h = sleepHours(e); if (h !== null) sl.push(h);
+      if (typeof e.mood === "number") mo.push(e.mood);
+    });
+    var as = avg(sl), am = avg(mo);
+    var items = [
+      { l: "Poison-free streak", v: streak, u: streak === 1 ? "day" : "days", s: streak ? "Clear days in a row" : "Starts with your next clear day" },
+      { l: "Gym, last 7 days", v: gym, u: "of 3", s: "Plan: Mon, Wed, Fri" },
+      { l: "Walk days, last 7", v: walk, u: "of 7", s: "Target: 30 min a day" },
+      { l: "Average sleep", v: as === null ? "—" : as.toFixed(1), u: as === null ? "" : "h", s: am === null ? "Target 7h, bed 22:30" : "Mood " + am.toFixed(1) + " of 5 · target 7h" }
+    ];
+    return '<section class="stats" aria-label="Summary">' + items.map(function (it) {
+      return '<div class="stat"><span class="label">' + it.l + '</span><span class="v num">' + it.v + (it.u ? "<small>" + it.u + "</small>" : "") + '</span><span class="s">' + it.s + "</span></div>";
+    }).join("") + "</section>";
+  }
+
+  function sleepChart(n) {
+    var days = lastDays(n), W = n > 7 ? 680 : 560, H = 200, L = 34, R = 10, T = 20, B = 32, pw = W - L - R, ph = H - T - B, max = 10;
+    function y(h) { return T + ph - (h / max) * ph; }
+    var o = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Hours slept in the last ' + n + ' nights against a 7 hour target">';
+    [0, 5, 10].forEach(function (g) {
+      o += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(g) + '" y2="' + y(g) + '"/><text x="' + (L - 6) + '" y="' + (y(g) + 4) + '" text-anchor="end">' + g + "h</text>";
+    });
+    var slot = pw / n, bw = Math.min(40, slot * 0.6);
+    days.forEach(function (k, i) {
+      var cx = L + slot * i + slot / 2, h = sleepHours(state.entries.get(k)), d = parse(k);
+      if (h !== null) {
+        var top = y(h);
+        o += '<rect class="b-' + statusSleep(h) + '" x="' + (cx - bw / 2) + '" y="' + top + '" width="' + bw + '" height="' + (y(0) - top) + '" rx="4"/><text class="v" x="' + cx + '" y="' + (top - 5) + '" text-anchor="middle">' + h.toFixed(1) + "</text>";
+      } else { o += '<text x="' + cx + '" y="' + (y(0) - 6) + '" text-anchor="middle">·</text>'; }
+      o += '<text x="' + cx + '" y="' + (H - 10) + '" text-anchor="middle"' + (k === today() ? ' class="tgt-l"' : "") + ">" + DOW[d.getDay()].slice(0, n > 7 ? 1 : 3) + " " + d.getDate() + "</text>";
+    });
+    o += '<line class="tgt" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(7) + '" y2="' + y(7) + '"/><text class="tgt-l" x="' + (W - R) + '" y="' + (y(7) - 5) + '" text-anchor="end">7h target</text></svg>';
+    return '<div class="card chart">' + o + "</div>";
+  }
+
+  function gridHtml() {
+    var days = lastDays(14);
+    var head = '<thead><tr><th scope="col"></th>' + days.map(function (k) {
+      var d = parse(k);
+      return '<th scope="col" class="' + (k === today() ? "today" : "") + '">' + DOW[d.getDay()] + '<span class="dn num">' + d.getDate() + "</span></th>";
+    }).join("") + "</tr></thead>";
+    var NONE = ["none", "·", "not logged"];
+    var rows = [
+      ["Sleep", "7h or more", function (e) { var h = sleepHours(e); return h === null ? NONE : [statusSleep(h), h.toFixed(1), h.toFixed(1) + " hours"]; }],
+      ["Bedtime", "by 22:45", function (e) { var s = statusBed(e); return s ? [s, e.bed, "bed at " + e.bed] : NONE; }],
+      ["Walk", "30 min", function (e) { var s = statusWalk(e); return s ? [s, e.walkMin, e.walkMin + " minutes"] : NONE; }],
+      ["Gym", "Mon Wed Fri", function (e) { if (!e || typeof e.gym !== "boolean") return NONE; return e.gym ? ["good", "✓", "went to the gym"] : ["rest", "rest", "rest day"]; }],
+      ["Sweets", "keep it low", function (e) { var s = statusSweets(e); return s ? [s, SWEETS[e.sweets], "sweets: " + SWEETS[e.sweets]] : NONE; }],
+      ["Poison", "stay clear", function (e) { var s = statusPoison(e); return s ? [s, { clear: "clear", brief: "brief", slip: "slip" }[e.poison], "poison: " + POISON[e.poison]] : NONE; }],
+      ["Mood", "4 or more", function (e) { var s = statusMood(e); return s ? [s, e.mood, "mood " + e.mood + " of 5"] : NONE; }]
+    ];
+    var body = "<tbody>" + rows.map(function (r) {
+      return '<tr><th scope="row">' + r[0] + "<small>" + r[1] + "</small></th>" + days.map(function (k) {
+        var res = r[2](state.entries.get(k));
+        return '<td><button type="button" class="cell ' + res[0] + (k === state.selDate ? " sel" : "") + '" data-act="openday" data-date="' + k + '" aria-label="' + esc(pretty(k) + ": " + res[2]) + '">' + esc(res[1]) + "</button></td>";
+      }).join("") + "</tr>";
+    }).join("") + "</tbody>";
+    return '<div class="gridwrap" id="gridwrap"><table class="habits">' + head + body + "</table></div>";
+  }
+
+  function entriesHtml(limit) {
+    var keys = Array.from(state.entries.keys()).sort().reverse().slice(0, limit);
+    if (!keys.length) return '<div class="entries"><div class="empty">No check-ins yet. Log your first day on the Check-ins page.</div></div>';
+    return '<div class="entries">' + keys.map(function (k) {
+      return '<button type="button" class="entry" data-act="openday" data-date="' + k + '"><span class="d">' + pretty(k) + '</span><span class="c">' + chips(state.entries.get(k)) + "</span></button>";
+    }).join("") + "</div>";
+  }
+
+  function segHtml(field, opts) {
+    return '<div class="seg" data-field="' + field + '">' + opts.map(function (o) {
+      return '<button type="button" data-act="seg" data-v="' + o[0] + '" aria-pressed="' + (String(state.form[field]) === String(o[0])) + '">' + o[1] + "</button>";
+    }).join("") + "</div>";
+  }
+  function formHtml() {
+    var d = state.selDate || today(), e = state.entries.get(d) || {};
+    function val(v) { return v === undefined || v === null ? "" : esc(v); }
+    return '<form class="card form" id="form" autocomplete="off">' +
+      '<div class="fields">' +
+      '<div class="field"><label for="f-date">Day</label><input type="date" id="f-date" value="' + esc(d) + '"></div>' +
+      '<div class="field"><span class="fl">Sleep (bed &rarr; wake)</span><div class="row2"><input type="time" id="f-bed" aria-label="Bedtime" value="' + val(e.bed) + '"><input type="time" id="f-wake" aria-label="Wake time" value="' + val(e.wake) + '"></div></div>' +
+      '<div class="field"><label for="f-walk">Walk (minutes)</label><input type="number" id="f-walk" min="0" max="600" step="5" inputmode="numeric" placeholder="e.g. 30" value="' + val(e.walkMin) + '"></div>' +
+      '<div class="field"><span class="fl">Gym</span>' + segHtml("gym", [[true, "Went"], [false, "Rest day"]]) + "</div>" +
+      '<div class="field wide"><label for="f-gymnote">Gym notes</label><input type="text" id="f-gymnote" placeholder="Exercises, weights, how the knee and hip felt" value="' + val(e.gymNote) + '"></div>' +
+      '<div class="field"><span class="fl">Sweets</span>' + segHtml("sweets", [["none", "None"], ["some", "Some"], ["lots", "A lot"]]) + "</div>" +
+      '<div class="field"><span class="fl">Poison</span>' + segHtml("poison", [["clear", "Clear"], ["brief", "Brief slip"], ["slip", "Slipped"]]) + "</div>" +
+      '<div class="field"><span class="fl">Mood (1 low, 5 great)</span>' + segHtml("mood", [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5"]]) + "</div>" +
+      '<div class="field wide"><label for="f-note">Note</label><textarea id="f-note" placeholder="Urges, triggers, what helped">' + val(e.note) + "</textarea></div>" +
+      "</div>" +
+      '<div class="actions"><button class="btn" type="submit" id="save">Save day</button><span class="status" id="status" role="status" aria-live="polite"></span></div></form>';
+  }
+
+  var TODO = [
+    { k: "gp", t: "GP check", s: "Blood pressure, HbA1c or fasting glucose, cholesterol" },
+    { k: "physio", t: "Physio assessment", s: "Sciatica and right knee, then progress the gym plan from their advice" }
+  ];
+
+  function greeting() { var h = new Date().getHours(); return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; }
+  function renderPage() {
+    var p = state.page;
+    if (p === "home") {
+      var day = Math.max(1, Math.floor((parse(today()) - parse(START)) / 86400000) + 1), shown = Math.min(day, PLAN_DAYS);
+      var phase = day <= 14 ? "Foundations · weeks 1–2" : day <= 28 ? "Progression · weeks 3–4" : "Lock-in · weeks 5–6";
+      var te = state.entries.get(today());
+      return '<section class="hero"><div class="label">Health &amp; Fitness · ' + phase + "</div><h2>" + greeting() + ', Haziq</h2>' +
+        '<div class="bar" role="img" aria-label="Day ' + shown + " of " + PLAN_DAYS + '"><i style="width:' + (shown / PLAN_DAYS * 100).toFixed(1) + '%"></i></div>' +
+        '<div class="road-meta"><span>Day ' + shown + " of " + PLAN_DAYS + " · started 19 Nov 2026</span><span>Review numbers and lock in routines for January</span></div></section>" +
+        statsHtml() +
+        '<section class="sec"><div class="sec-head"><h2>Today</h2><button class="btn" data-act="openday" data-date="' + today() + '">' + (te ? "Edit today" : "Log today") + "</button></div>" +
+        '<div class="card">' + (te ? '<div class="c" style="display:flex;flex-wrap:wrap;gap:6px">' + chips(te) + "</div>" : '<span class="hint">Nothing logged for today yet.</span>') + "</div></section>" +
+        '<section class="sec"><div class="sec-head"><h2>Sleep, last 7 nights</h2><span class="hint">Each night counts on the morning you woke up</span></div>' + sleepChart(7) + "</section>" +
+        '<section class="sec"><div class="sec-head"><h2>Recent check-ins</h2><a class="hint" href="#habits">See all habits</a></div>' + entriesHtml(5) + "</section>";
+    }
+    if (p === "checkins") {
+      var d = state.selDate || today();
+      return '<section class="sec"><div class="sec-head"><h2>Log a day</h2><span class="hint">' + pretty(d) + (d === today() ? " (today)" : "") + (state.entries.has(d) ? " · editing saved entry" : " · new entry") + "</span></div>" + formHtml() + "</section>" +
+        '<section class="sec"><div class="sec-head"><h2>Recent check-ins</h2></div>' + entriesHtml(10) + "</section>";
+    }
+    if (p === "habits") {
+      return '<section class="sec"><div class="sec-head"><h2>Last 14 days</h2><div class="legend"><span><i class="i-good"></i>On target</span><span><i class="i-mid"></i>Close</span><span><i class="i-bad"></i>Off target</span></div></div>' + gridHtml() +
+        '<div class="hint">Tap any day to open it in the log form. Dashed boxes are days not logged yet.</div></section>';
+    }
+    if (p === "sleep") {
+      var hs = lastDays(14).map(function (k) { return sleepHours(state.entries.get(k)); }).filter(function (h) { return h !== null; });
+      var a = avg(hs);
+      return '<section class="stats"><div class="stat"><span class="label">Average, 14 nights</span><span class="v num">' + (a === null ? "—" : a.toFixed(1)) + "<small>h</small></span><span class=\"s\">Target 7h</span></div>" +
+        '<div class="stat"><span class="label">Nights at 7h+</span><span class="v num">' + hs.filter(function (h) { return h >= 7; }).length + "<small>of " + hs.length + '</small></span><span class="s">Of nights logged</span></div>' +
+        '<div class="stat"><span class="label">Longest</span><span class="v num">' + (hs.length ? Math.max.apply(null, hs).toFixed(1) : "—") + '<small>h</small></span><span class="s">&nbsp;</span></div>' +
+        '<div class="stat"><span class="label">Shortest</span><span class="v num">' + (hs.length ? Math.min.apply(null, hs).toFixed(1) : "—") + '<small>h</small></span><span class="s">&nbsp;</span></div></section>' +
+        '<section class="sec"><div class="sec-head"><h2>Sleep, last 14 nights</h2><span class="hint">Bed target 22:30, wake 06:00</span></div>' + sleepChart(14) + "</section>";
+    }
+    return '<section class="sec"><div class="sec-head"><h2>Health admin</h2></div><div class="todo">' + TODO.map(function (it) {
+      var on = !!state.admin[it.k];
+      return '<button type="button" data-act="todo" data-k="' + it.k + '" aria-pressed="' + on + '"><span class="box" aria-hidden="true">' + (on ? "✓" : "") + '</span><span class="t">' + it.t + "<small>" + it.s + "</small></span></button>";
+    }).join("") + "</div></section>";
+  }
+
+  function sideHtml() {
+    var nav = "", last = null;
+    PAGES.forEach(function (p) {
+      if (p.group !== last) { if (p.group) nav += '<div class="label grp">' + p.group + "</div>"; last = p.group; }
+      nav += '<a href="#' + p.id + '"' + (p.id === state.page ? ' aria-current="page"' : "") + ">" + ic(p.icon) + "<span>" + p.label + "</span></a>";
+    });
+    var email = mode === "cloud" && state.user ? state.user.email : "Local mode";
+    return '<aside class="side" id="side"><div class="brand"><div class="logo">' + ic("pulse") + '</div><div><b>Haziq</b><span>Personal Portal</span></div></div>' +
+      '<button class="searchbox" data-act="palette">' + ic("search") + "<span>Search tools</span><kbd>⌘K</kbd></button>" +
+      '<nav class="nav" aria-label="Main">' + nav + "</nav>" +
+      '<div class="usercard">' + (state.menuOpen && mode === "cloud" ? '<div class="usermenu"><button data-act="signout">' + ic("out") + "<span>Sign out</span></button></div>" : "") +
+      '<button data-act="usermenu" aria-haspopup="true"><span class="avatar">H<i></i></span><span class="who"><b>Haziq</b><span>' + esc(email) + "</span></span>" + (mode === "cloud" ? ic("updown") : "") + "</button></div></aside>";
+  }
+
+  function loginHtml() {
+    return '<div class="login"><div class="card"><div class="brand"><div class="logo">' + ic("pulse") + '</div><div><b>Haziq</b><span>Personal Portal</span></div></div>' +
+      '<form id="login"><input type="email" id="l-email" placeholder="Email" autocomplete="username" required><input type="password" id="l-pass" placeholder="Password" autocomplete="current-password" required>' +
+      '<button class="btn" type="submit" id="l-go">Sign in</button><span class="status err" id="l-err" role="alert">' + esc(state.err) + "</span></form></div></div>";
+  }
+
+  function render() {
+    var app = $("app");
+    if (mode === "cloud" && !state.user) { app.innerHTML = loginHtml(); return; }
+    var pg = pageById(state.page);
+    var banner = "";
+    if (state.err) banner = '<div class="err" role="alert">Could not reach your data: ' + esc(state.err) + "</div>";
+    else if (mode === "local") banner = "<div>Local mode: entries are saved in this browser only. Add your Supabase keys in config.js to store them online.</div>";
+    app.innerHTML = '<div class="shell' + (state.navOpen ? " navopen" : "") + '">' + sideHtml() + '<div class="scrim" data-act="closenav"></div>' +
+      '<div class="main"><header class="topbar"><button class="iconbtn" id="menubtn" data-act="opennav" aria-label="Open menu">' + ic("menu") + "</button><h1>" + pg.label + "</h1>" +
+      '<button class="iconbtn" data-act="palette" aria-label="Search tools">' + ic("search") + "</button>" +
+      '<button class="iconbtn' + (state.busy ? " spin" : "") + '" data-act="refresh" aria-label="Refresh data">' + ic("refresh") + "</button></header>" +
+      '<div class="banner">' + banner + '</div><div class="page" id="page">' + renderPage() + "</div></div></div>" +
+      (state.toast ? '<div class="toast" role="status">' + esc(state.toast) + "</div>" : "");
+    document.title = pg.label + " · Haziq's Personal Portal";
+  }
+
+  /* ---------- actions ---------- */
+  function setFormFrom(date) {
+    var e = state.entries.get(date) || {};
+    state.selDate = date;
+    state.form = { gym: typeof e.gym === "boolean" ? e.gym : undefined, sweets: e.sweets, poison: e.poison, mood: typeof e.mood === "number" ? e.mood : undefined };
+  }
+  function go(page) { if (location.hash !== "#" + page) location.hash = page; else { state.navOpen = false; render(); } }
+  function showToast(t) { state.toast = t; render(); setTimeout(function () { state.toast = ""; var el = document.querySelector(".toast"); if (el) el.remove(); }, 2200); }
+
+  async function refresh() {
+    state.busy = true; render();
+    try { await loadAll(); state.err = ""; } catch (e) { state.err = errText(e); }
+    state.busy = false;
+    if (!state.selDate || !state.booted) setFormFrom(today());
+    state.booted = true;
+    render();
+  }
+
+  async function onSave(ev) {
+    ev.preventDefault();
+    var date = $("f-date").value;
+    if (!date) { setStatus("Pick a day first.", "err"); return; }
+    var e = Object.assign({}, state.entries.get(date) || {}, { date: date });
+    function put(k, v) { if (v === undefined || v === "" || (typeof v === "number" && isNaN(v))) delete e[k]; else e[k] = v; }
+    put("bed", $("f-bed").value); put("wake", $("f-wake").value);
+    var w = $("f-walk").value; put("walkMin", w === "" ? "" : Number(w));
+    put("gym", state.form.gym); put("gymNote", $("f-gymnote").value.trim());
+    put("sweets", state.form.sweets); put("poison", state.form.poison); put("mood", state.form.mood);
+    put("note", $("f-note").value.trim());
+    $("save").disabled = true; setStatus("Saving…", "");
+    try {
+      await saveEntry(e);
+      state.entries.set(date, e); state.selDate = date; state.err = "";
+      showToast("Saved " + pretty(date));
+    } catch (er) { var b = $("save"); if (b) b.disabled = false; setStatus("Could not save: " + errText(er) + ".", "err"); }
+  }
+  function setStatus(t, cls) { var s = $("status"); if (s) { s.textContent = t; s.className = "status" + (cls ? " " + cls : ""); } }
+
+  async function onLogin(ev) {
+    ev.preventDefault();
+    var btn = $("l-go"), email = $("l-email").value.trim(), pass = $("l-pass").value;
+    btn.disabled = true; $("l-err").textContent = "";
+    var r = await sb.auth.signInWithPassword({ email: email, password: pass });
+    if (r.error) { state.err = r.error.message; render(); return; }
+    state.err = "";
+  }
+
+  document.addEventListener("click", async function (ev) {
+    var t = ev.target.closest ? ev.target.closest("[data-act]") : null;
+    if (!t) { if (state.menuOpen && !ev.target.closest(".usercard")) { state.menuOpen = false; render(); } return; }
+    var act = t.getAttribute("data-act");
+    if (act === "opennav") { state.navOpen = true; render(); }
+    else if (act === "closenav") { state.navOpen = false; render(); }
+    else if (act === "refresh") { refresh(); }
+    else if (act === "palette") { openPalette(); }
+    else if (act === "usermenu") { state.menuOpen = !state.menuOpen; render(); }
+    else if (act === "signout") { state.menuOpen = false; await sb.auth.signOut(); }
+    else if (act === "openday") { setFormFrom(t.getAttribute("data-date")); state.page = "checkins"; if (location.hash !== "#checkins") location.hash = "checkins"; else render(); window.scrollTo(0, 0); }
+    else if (act === "seg") {
+      var seg = t.parentNode, field = seg.getAttribute("data-field"), raw = t.getAttribute("data-v");
+      var v = field === "gym" ? raw === "true" : field === "mood" ? Number(raw) : raw;
+      state.form[field] = state.form[field] === v ? undefined : v;
+      Array.prototype.forEach.call(seg.querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", String(String(state.form[field]) === b.getAttribute("data-v"))); });
+    }
+    else if (act === "todo") {
+      var k = t.getAttribute("data-k"), prev = !!state.admin[k];
+      state.admin[k] = !prev; render();
+      try { await saveAdmin(k, !prev); } catch (e) { state.admin[k] = prev; state.err = errText(e); render(); }
+    }
+  });
+  document.addEventListener("submit", function (ev) {
+    if (ev.target.id === "form") onSave(ev); else if (ev.target.id === "login") onLogin(ev);
+  });
+  document.addEventListener("change", function (ev) {
+    if (ev.target.id === "f-date" && ev.target.value) { setFormFrom(ev.target.value); render(); }
+  });
+  window.addEventListener("hashchange", function () {
+    var id = location.hash.replace("#", ""); state.page = pageById(id).id; state.navOpen = false; state.menuOpen = false; render(); window.scrollTo(0, 0);
+  });
+
+  /* ---------- search palette (⌘K / Ctrl+K) ---------- */
+  var pal = null;
+  function closePalette() { if (pal) { pal.remove(); pal = null; } }
+  function openPalette() {
+    if (pal || (mode === "cloud" && !state.user)) return;
+    state.navOpen = false;
+    var items = PAGES.map(function (p) { return { label: p.label, icon: p.icon, run: function () { go(p.id); } }; });
+    items.push({ label: "Log today", icon: "check", run: function () { setFormFrom(today()); state.page = "checkins"; if (location.hash !== "#checkins") location.hash = "checkins"; else render(); } });
+    pal = document.createElement("div"); pal.className = "pal";
+    pal.innerHTML = '<div role="dialog" aria-label="Search tools"><input type="text" id="p-q" placeholder="Search tools" aria-label="Search tools"><ul id="p-list"></ul></div>';
+    document.body.appendChild(pal);
+    var q = pal.querySelector("input"), list = pal.querySelector("ul"), shown = [];
+    function draw() {
+      var s = q.value.trim().toLowerCase();
+      shown = items.filter(function (i) { return !s || i.label.toLowerCase().indexOf(s) >= 0; });
+      list.innerHTML = shown.length ? shown.map(function (i, n) { return '<li><button type="button" data-n="' + n + '" class="' + (n === 0 ? "on" : "") + '">' + ic(i.icon) + "<span>" + esc(i.label) + "</span></button></li>"; }).join("") : '<li class="empty">No match</li>';
+    }
+    function pick(n) { var it = shown[n]; closePalette(); if (it) it.run(); }
+    q.addEventListener("input", draw);
+    q.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); pick(0); } });
+    list.addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) pick(+b.getAttribute("data-n")); });
+    pal.addEventListener("click", function (e) { if (e.target === pal) closePalette(); });
+    draw(); q.focus();
+  }
+  document.addEventListener("keydown", function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); pal ? closePalette() : openPalette(); }
+    else if (e.key === "Escape") { if (pal) closePalette(); else if (state.navOpen) { state.navOpen = false; render(); } }
+  });
+
+  /* ---------- boot ---------- */
+  state.page = pageById(location.hash.replace("#", "")).id;
+  state.selDate = today();
+  setFormFrom(today());
+  (async function () {
+    if (mode === "cloud") {
+      var s = await sb.auth.getSession();
+      state.user = s.data.session ? s.data.session.user : null;
+      sb.auth.onAuthStateChange(function (_ev, session) {
+        var had = !!state.user; state.user = session ? session.user : null;
+        setTimeout(function () { if (state.user && !had) refresh(); else if (!state.user) { state.entries = new Map(); state.booted = false; render(); } }, 0);
+      });
+      if (state.user) await refresh(); else render();
+    } else { state.user = { email: "local" }; await refresh(); }
+  })();
+})();
+</script>
+</body>
+</html>

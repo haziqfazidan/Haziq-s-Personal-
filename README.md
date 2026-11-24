@@ -24,7 +24,8 @@ Row Level Security is on for every table, so a signed-in user can only read and 
 
 ## Files
 
-- `index.html` the portal (added once the layout is agreed)
+- `index.html` the portal: sidebar nav (Home, Check-ins, Habits, Sleep, Health admin), search (Ctrl/Cmd+K), login.
+  Without a `config.js` it runs in local mode and saves to that browser only, so you can try it before Supabase is set up.
 - `config.js` your Supabase URL and anon key (you create this, never committed)
 - `supabase/schema.sql` tables and security rules
 - `supabase/seed.sql` check-ins logged so far
