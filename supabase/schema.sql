@@ -53,3 +53,8 @@ create policy "own admin tasks" on public.admin_tasks
   for all to authenticated
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
+
+-- Table privileges. New Supabase projects do not auto-grant these, and without them
+-- a signed-in user gets "permission denied". Anonymous visitors get nothing.
+revoke all on public.checkins, public.admin_tasks from anon, authenticated;
+grant select, insert, update, delete on public.checkins, public.admin_tasks to authenticated;
