@@ -11,7 +11,7 @@ It is a single static page: open `index.html` in a browser, no build step.
    row level security protect the data. Never put the `service_role` key in it.
 3. Login user created in Authentication > Users (done).
 4. **You do:** Authentication > Sign In / Providers > untick "Allow new users to sign up".
-5. Check-ins for 19-23 Nov loaded (`supabase/seed.sql`).
+5. Check-ins for 19-23 Nov loaded into the database.
 6. Open `index.html` and sign in.
 
 ## How your data is protected
@@ -26,4 +26,3 @@ The repo is private.
 - `config.js` Supabase URL and publishable key
 - `config.example.js` template for pointing the portal at a different project
 - `supabase/schema.sql` tables and security rules
-- `supabase/seed.sql` check-ins logged so far

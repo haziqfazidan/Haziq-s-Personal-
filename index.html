@@ -446,7 +446,7 @@ textarea { resize: vertical; min-height: 64px; }
       '<div class="field"><span class="fl">Sleep (bed &rarr; wake)</span><div class="row2"><input type="time" id="f-bed" aria-label="Bedtime" value="' + val(e.bed) + '"><input type="time" id="f-wake" aria-label="Wake time" value="' + val(e.wake) + '"></div></div>' +
       '<div class="field"><label for="f-walk">Walk (minutes)</label><input type="number" id="f-walk" min="0" max="600" step="5" inputmode="numeric" placeholder="e.g. 30" value="' + val(e.walkMin) + '"></div>' +
       '<div class="field"><span class="fl">Gym</span>' + segHtml("gym", [[true, "Went"], [false, "Rest day"]]) + "</div>" +
-      '<div class="field wide"><label for="f-gymnote">Gym notes</label><input type="text" id="f-gymnote" placeholder="Exercises, weights, how the knee and hip felt" value="' + val(e.gymNote) + '"></div>' +
+      '<div class="field wide"><label for="f-gymnote">Gym notes</label><input type="text" id="f-gymnote" placeholder="Exercises, weights, how it felt" value="' + val(e.gymNote) + '"></div>' +
       '<div class="field"><span class="fl">Sweets</span>' + segHtml("sweets", [["none", "None"], ["some", "Some"], ["lots", "A lot"]]) + "</div>" +
       '<div class="field"><span class="fl">Poison</span>' + segHtml("poison", [["clear", "Clear"], ["brief", "Brief slip"], ["slip", "Slipped"]]) + "</div>" +
       '<div class="field"><span class="fl">Mood (1 low, 5 great)</span>' + segHtml("mood", [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5"]]) + "</div>" +
@@ -457,7 +457,7 @@ textarea { resize: vertical; min-height: 64px; }
 
   var TODO = [
     { k: "gp", t: "GP check", s: "Blood pressure, HbA1c or fasting glucose, cholesterol" },
-    { k: "physio", t: "Physio assessment", s: "Sciatica and right knee, then progress the gym plan from their advice" }
+    { k: "physio", t: "Physio assessment", s: "Assessment and advice to progress the gym plan" }
   ];
 
   function greeting() { var h = new Date().getHours(); return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; }
